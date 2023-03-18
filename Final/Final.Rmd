@@ -1,0 +1,345 @@
+---
+title: "Impact of COVID 19 on diet"
+subtitle: "Stat425 Final Project"
+author: "Hyunjoon Rhee"
+date: "5/10/2021"
+output:
+  pdf_document:
+    toc: TRUE
+    toc_depth: 3
+    highlight: tango
+    df_print: paged
+  html_document: Default
+---
+
+
+## Introduction
+
+December 19th, there was a first confirmed case of COVID-19 from Wuhan, China. Since then highly infectious COVID-19 has transferred the virus all over the world in short time. It has been more than a year since the pandemic has started. People are living a different life, comparing the before and after the pandemic started. One of the major difference that the people are experiencing is the diet. The way people are eating has changed ever since. The restrictions that people were given prevented people from dining outside and started to consume food in home more. Additional to such phenomenon, there must have been more changes toward the dietary patterns of people. 
+
+In this project, I am going to analyze and compare the energy consumption level and the active cases of COVID-19, in order to see the relationship between those two.
+
+The data is obtained from Kaggle(2021). The data shows the energy intake level from various products in 170 different countries. The data is composed of 32 columns of different variables and 170 rows. The meaning of each variables are explained in Kaggle, and is summarized below:
+
+* Country(Categorical): Countries around the world
+* Alcoholic Beverages(Numeric): Percentage of energy intake (kcal) from alcoholic beverages
+* Animal Products(Numeric): Percentage of energy intake (kcal) from animal products
+* Animal Fats(Numeric): Percentage of energy intake (kcal) from animal fats
+* Aquatic Products, Other(Numeric): Percentage of energy intake (kcal) from aquatic product
+* Cereals - Excluding Beer(Numeric): Percentage of energy intake (kcal) from cereal - excluding beer
+* Eggs(Numeric): Percentage of energy intake (kcal) from eggs
+* Fish, Seafood(Numeric): Percentage of energy intake (kcal) from fish, seafood
+* Fruits - Excluding Wine(Numeric): Percentage of energy intake (kcal) from fruits - excluding wine
+* Meat(Numeric): Percentage of energy intake (kcal) from meat
+* Milk - Excluding Butter(Numeric): Percentage of energy intake (kcal) from milk - excluding butter
+* Miscellaneous(Numeric): Percentage of energy intake (kcal) from miscellaneous
+* Offals(Numeric): Percentage of energy intake (kcal) from offals
+* Oilcrops(Numeric): Percentage of energy intake (kcal) from oilcrops
+* Pulses(Numeric): Percentage of energy intake (kcal) from pulses
+* Spices(Numeric): Percentage of energy intake (kcal) from spices
+* Starchy Roots(Numeric): Percentage of energy intake (kcal) from starchy roots
+* Stimulants(Numeric): Percentage of energy intake (kcal) from stimulants
+* Sugar Crops(Numeric): Percentage of energy intake (kcal) from sugar crops
+* Sugar & Sweeteners(Numeric): Percentage of energy intake (kcal) from sugar and sweeteners
+* Treenuts(Numeric): Percentage of energy intake (kcal) from treenuts
+* Vegetable Products(Numeric): Percentage of energy intake (kcal) from vegetal products
+* Vegetable oils(Numeric): Percentage of energy intake (kcal) from vegetable oils
+* Vegetables(Numeric): Percentage of energy intake (kcal) from vegetables
+* Obesity(Numeric): Obesity rate (%)
+* Undernourished(Numeric): Undernourished rate (%)
+* Confirmed(Numeric): Percentage of confirmed COVID-19 cases
+* Deaths(Numeric): Percentage of confirmed COVID-19 cases
+* Recovered(Numeric): Percentage of COVID-19 recovered
+* Active(Numeric): Percentage of COVID-19 active cases
+* Population Count(Numeric): Population count
+* Unit(Categorical): Unit for data (%)
+
+As it is shown above, all the variables are numeric except for the two categorical variable(countries, unit). With such vast data, the analysis would be done by mainly comparing each numeric variables with that of active COVID19 cases in order to see the relationship. All the analysis would be done in R.
+
+## Exploratory Data Analysis
+
+#### Data Cleansing
+The main purpose of the analysis is to see the overall relationship among the diet and number of COVID-19 cases. Therefore, rather than showing the every detail of the variables, there will be an comparison among 'Active' and other variables. 
+
+```{r, include = FALSE}
+kcal <- read.csv('Food_Supply_kcal_Data.csv',header=TRUE)
+```
+
+
+For data cleaning process, process was made to clear out rows that contains empty values and remove Active cases that has negative value in it.
+```{r, include = FALSE}
+kcal <- na.omit(kcal)
+
+kcal <- kcal[-which(kcal$Country== 'Vanuatu'),]
+kcal <- kcal[-which(kcal$Country== 'Samoa'),]
+
+```
+
+The massive data contains columns that does not have many significant values. For example column 'Aquatic Products, Other' ranges from 0 to 0.4, and includes value other than 0 in less than 5 rows. Compared to 170 rows of data in the other columns, it is relatively unlikely to give any significant meaning to the data. Although proper testing is required, but with such significantly small number of data, it was unnecessary for me to test it out. Columns of 'Sugar Crops', 'Unit' is removed to similar reasons.
+
+```{r, include=FALSE}
+names(kcal)
+kcal <- kcal[ , -which(names(kcal) %in% c('Aquatic.Products..Other', 'Sugar.Crops', 'Unit..all.except.Population.'))]
+```
+
+Also, since in this project, I am only going to compare the remaining variables with Active cases of COVID19, other columns of 'Confirmed', 'Deaths', 'Recovered' is unnecessary.
+
+```{r, include=FALSE}
+kcal <- kcal[ , -which(names(kcal) %in% c('Confirmed', 'Deaths', 'Recovered'))]
+```
+
+Moreover, column 'Undernourished' has a character value of <2.5 which indicates any value that is below 2.5. For convenience, it is going to be assumed as a value of 1. Since this Undernourished column is in class of character, it is necessary to change it to numeric value in order to find a better understanding of the rate.
+```{r, include=FALSE}
+kcal$Undernourished[which(kcal$Undernourished == "<2.5")] <- "1"
+kcal$Undernourished <- as.numeric(as.character(kcal$Undernourished))
+```
+
+
+#### Analysis of product intakes
+
+After the data cleaning process, further analysis is required in order to view the average amount of product that people intake.
+
+```{r,include=FALSE}
+library(reshape2)
+kcalmean <- kcal[ , -which(names(kcal) %in% c('Obesity', 'Undernourished', 'Active', 'Population'))]
+kcalmean <- colMeans(kcalmean[,sapply(kcalmean, is.numeric)]) 
+kcalmean<- kcalmean[order(-kcalmean)]
+kcalmean <- as.data.frame.list(kcalmean)
+ncol(kcalmean)
+kcalmean <- melt(kcalmean[, 1:ncol(kcalmean)])
+```
+
+```{r,include=TRUE,echo=FALSE,message=FALSE,warning=FALSE, fig.cap="Figure1: Energy intake products",fig.align='center',fig.height=5, fig.width=8}
+library(ggplot2)
+ggplot(kcalmean, aes(x="", y=value, fill=variable)) +
+  geom_bar(stat="identity", position = position_dodge())+
+  theme_void()
+
+```
+
+In order to look at the overall percentage of products that people intake, bar graph is made. Bar graph in Figure 1 shows that the vegetal products takes most part of the energy that people intake. Therefore, further analysis with vegetal products must be made in order to further analyze. In a following order, top 4 products takes about 75% of the total energy consumption. The top 4 products are Vegetal Products, Cereals excluding beer, animal products, and vegetable oils.
+
+There are products that takes less than 1.2% of the total consumption rate, which includes, 'Pulses', 'Vegetables', 'Oilcrops','Fish..Seafood','Eggs','Stimulants','Treenuts','Spices','Offals','Miscellaneous'. Considering the scope of work that what the major dietary patterns there are related to Active covid cases, it is decided to remove these terms from the data.
+
+
+#### Correlation Matrix
+```{r,include=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.cap="Figure2: Correlation Plot",fig.align='center',fig.height=5, fig.width=8}
+library(corrplot)
+kcal2 <- kcal[ , -which(names(kcal) %in% c('Pulses', 'Vegetables', 'Oilcrops','Fish..Seafood','Eggs','Stimulants','Treenuts','Spices','Offals','Miscellaneous','Obesity','Undernourished','Population'))]
+kcalnocountry <- kcal2[,2:13]
+res <- cor(kcalnocountry)
+res <- round(res, 2)
+par(cex=1)
+corrplot(res, method="number",tl.pos='n')
+```
+
+The correlation plot further guides the method of analysis, which will be covered in later for detailed analysis. Figure 2 provides a correlation plot of the data. Value that is close to 1 means that there are strong linear relationship among the variables. Due to its complexity of the variables, the correlation coefficient that is greater or smaller than 0.7 and -0.7 would be good to take a look at.
+
+List: (Animal Products, animal fats, 0.74), (animal products, meat, 0.85), (animal products, milk excluding butter, 0.81), (animal products, vegetal products, -1), (animal fats, vegetal product, -0.74), (meat, vegetal product, -0.85), (milk excluding butter, vegetal product, -0.81).
+
+The above list shows the combination that has a correlation coefficient that is greater than 0.7. It is noticeable that the animal fats, meat, milk excluding butter are the variables that exist between the correlation with both animal products and vegetal products. 
+
+However, the correlation matrix does not show the relationship among individual variables with the rate of active Covid cases. Therefore, further analysis with the linear model is required.
+
+#### 4 mostly consumed products vs Active Covid-19 rate
+To discover more on the the prior relationship of active COVID-19 rate and top 4 products that are taken into consideration of energy intake, 4 graphs were used.
+
+```{r,include = TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.cap = "Figure3: Active vs Top 4 Energy intake products",fig.align='center'}
+
+library(ggplot2)
+library(gridExtra)
+plot1 = ggplot(kcal, aes(x=Vegetal.Products,y=Active)) + geom_point()
+plot2 = ggplot(kcal, aes(x=Cereals...Excluding.Beer,y=Active)) + geom_point()
+plot3 = ggplot(kcal, aes(x=Animal.Products,y=Active)) + geom_point()
+plot4 = ggplot(kcal, aes(x=Vegetable.Oils,y=Active)) + geom_point()
+grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol=2)
+```
+From Figure 3, it is hard to analyze if there are any linear relationship among Active COVID cases and the products. Just as it is shown in the correlation matrix, further analysis is required.
+
+## Method
+
+In order to find out the pattern of foods that people consume after COVID outraged, linear model is used.
+
+#### 3.1 Model selection 
+
+In order to analyze the model, first the data is split into two parts. First is the training dataset, and the second is the test dataset. The ratio of training and testing is 9 to 1.
+```{r, include=FALSE}
+n = nrow(kcalnocountry)
+train_index = sample.int(n, floor(0.9 * n), replace = FALSE)
+train_data = kcalnocountry[train_index,]
+test_data = kcalnocountry[-1 * train_index,]
+```
+
+```{r, include=FALSE}
+covid_lm = lm(Active ~ ., data = train_data)
+summary(covid_lm)
+```
+From the previous brief analysis of the data, it was hard to find any specific relationship between the active covid cases and other variables. Therefore, in order to find the variables that has significant relationship with the active cases, the step function is used.
+
+
+```{r, include=FALSE}
+covid_step = step(covid_lm, direction = "both", trace=FALSE)
+summary(covid_step)
+```
+
+After using the step function on both sides, the variables that are left with is Alcoholic Beverages, Milk excluding butter, and vegetable oils. 
+
+##### Check Model Assumption
+
+In order to see if the model that the step function has created is meeting the assumption criteria, the assumptions are checked. Constant variance, normality, and independence assumptions are checked.
+```{r, include=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.cap = "Figure4: Model Assumption Check",fig.align='center'}
+par(mfrow=c(2,2))
+plot(covid_step)
+```
+##### Constant Variance
+```{r, include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+library(lmtest)
+before_bp = bptest(covid_step)$p.value
+print(paste("BP test p value = ", before_bp))
+```
+It is hard to realize from the residual vs fitted graph in Figure 4, but the bptest has a p value of 0.0002, which rejects the null hypothesis that error variances are all equal when the $\alpha = 0.05$.
+
+##### Check for normality
+```{r, include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+before_shapiro = shapiro.test(covid_step$residuals)$p.value
+print(paste("Shapiro-Wilk test p value = ", before_shapiro))
+```
+Although it was hard to observe if the data is normal in the qqplot in Figure 4, the shapiro-wilk test had a p value that was small with a value that is close to 0. This rejects the null hypothesis that the variables are normally distributed in some population.
+
+##### Check for independence
+```{r, include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+before_dw = dwtest(covid_step)$p.value
+print(paste("DW test p value = ", before_dw))
+```
+The dw test shows that there is no autocorrelation since the p value is large with 0.6994, which means that it fails to reject the null hypothesis.
+
+Just by looking at the normality assumption and the homogeneity of the data, it is easy to say that the transformation of a data is needed.
+ 
+```{r,include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+covidmodel = lm(Active ~ Alcoholic.Beverages + Milk...Excluding.Butter + Vegetable.Oils,data= kcalnocountry)
+summary(covidmodel)
+```
+
+In order to transform the data, box-cox transformation is implemented. The box-cox graph is provided in Figure 5.
+```{r,include=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.cap = "Figure 5: Box-Cox Graph",fig.align='center'}
+library(MASS)
+boxcox(covidmodel, lambda = seq(-0.1, 0.25, by = 0.05), plotit = TRUE)
+```
+According to the box cox graph, the lambda is 0.08. This shows that the response variable should be recalculated in a form of $(y^\lambda - 1)/\lambda$. 
+
+```{r,include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+bc = lm(((Active^0.08)-1)/0.08 ~ Alcoholic.Beverages + Milk...Excluding.Butter + Vegetable.Oils,data= kcalnocountry)
+```
+
+After the recalculation, the model is rearranged and the assumptions are met with BP test Shapiro-Wilk, and Durbin-Watson test showing p value that is greater than $\alpha = 0.01$. BP test, Shapiro test, and DW test each had 0.4913, 0.3455, and 0.4293.
+
+```{r,include=TRUE,echo=FALSE,message=FALSE,warning=FALSE}
+afterbp = bptest(bc)$p.value
+aftershapiro = shapiro.test(bc$residuals)$p.value
+afterdw = dwtest(bc)$p.value
+#print(paste("BP test: ",afterbp, "Shaprio test: ", aftershapiro, "DW test: ", afterdw))
+
+library(knitr)
+variable = c("BP test", "Shapiro test", "DW test")
+Values = c(afterbp, aftershapiro,afterdw)
+
+kable(data.frame(Variable=variable, Value = Values))
+```
+
+##### Check for high-leverage, outlier, influential points
+
+As the assumptions are met, effort to improve the model was made. Leverage, outlier, and cook's distance was calculated, and as a result, there were 3 leverage points, with no outlier, and 1 highly influential point.
+```{r,include=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.cap = "Figure 6: Leverage points",fig.align='center'}
+library(faraway)
+p = 7
+n = nrow(kcalnocountry)
+lev = influence(bc)$hat
+halfnorm(lev, 30, labs=row.names(kcalnocountry), ylab="Leverages")
+```
+
+```{r,include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+kcalnocountry[lev > 2*p/n,]
+```
+
+```{r, include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+q = rstudent(bc)
+qt(0.05/(2*n), n-p-1)
+sort(abs(q), decreasing=TRUE)
+```
+
+
+##### Check for highly influential points
+```{r, include=TRUE,echo=FALSE,message=FALSE,warning=FALSE,fig.cap = "Figure 7: Influential points",fig.align='center'}
+halfnorm(cooks.distance(bc), labs = row.names(kcalnocountry))
+```
+By getting rid of the leverage points and the influential point, it much better fitted for the model. 
+
+```{r, include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+kcalbc = kcalnocountry[-c(68,2,47,92),]
+```
+
+After getting rid of the influential points, model was processed again due to change in data set. Therefore, new training dataset and testing dataset were created. 
+
+#### 3.2 
+After the modification of the model, the training and testing process were applied. RMSE with training data and testing data was applied.
+```{r, include=TRUE,echo=FALSE,message=FALSE,warning=FALSE}
+kcalbc <- na.omit(kcalbc)
+n2 = nrow(kcalbc)
+train_index2 = sample.int(n, floor(0.9 * n), replace = FALSE)
+train_data2 = kcalbc[train_index2,]
+test_data2 = kcalbc[-1 * train_index2,]
+train_data2 <- na.omit(train_data2)
+test_data2 <- na.omit(test_data2)
+modelbc = lm(((Active^0.08)-1)/0.08 ~ Alcoholic.Beverages + Milk...Excluding.Butter + Vegetable.Oils,data= train_data2)
+
+
+
+library(ModelMetrics)
+trainrmse = sqrt(sum((modelbc$fitted.values-(((train_data2$Active^0.08)-1)/0.08))^2)/nrow(train_data2))
+predictedactive = predict(modelbc, newdata=test_data2)
+testrmse = sqrt(sum((predictedactive-(((test_data2$Active^0.08)-1)/0.08))^2)/nrow(test_data2))
+
+#print(paste("Train RMSE = ",trainrmse,"  Test RMSE = ",testrmse))
+library(knitr)
+variable1 = c("Train RMSE", "Test RMSE")
+Values2 = c(trainrmse,testrmse)
+
+kable(data.frame(Variable=variable1, Value = Values2))
+```
+
+After the calculation, it could be noticed that the test rmse is smaller than train rmse, which shows a good result for the diagnosing the model. 
+
+```{r, include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+summary(modelbc)
+```
+After the analysis, it could be summarized that alcoholic.beverages, milk, and vegetable oils form a linear relationship with Active covid cases. By looking at the coefficients of the model, all of the variables show positive relationship with the active covid cases.
+
+#### 3.3 
+```{r, include=TRUE,echo=FALSE,message=FALSE,warning=FALSE}
+set.seed(123)
+library(randomForest)
+forestmodel = randomForest(Active~., data = train_data2)
+
+ftrainrmse = sqrt(sum((forestmodel$predicted-train_data2$Active)^2)/nrow(train_data2))
+forestpredict = predict(forestmodel, newdata=test_data2)
+
+ftestrmse = sqrt(sum((forestpredict-test_data2$Active)^2)/nrow(test_data2))
+#print(paste("Random Forest:   Train RMSE = ",ftrainrmse,"  Test RMSE = ",ftestrmse))
+library(knitr)
+variable3 = c("Train RMSE", "Test RMSE")
+Values4 = c(ftrainrmse,ftestrmse)
+
+kable(data.frame(Variable=variable3, Value = Values4))
+```
+
+```{r, include=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+summary(forestmodel)
+```
+
+As another method to analyze the data, random forest model was used. With having 500 regression trees, each trees were built on random subset of the data, meaning that by every split, there was a random subset of variables. Comparing the RMSE value of training data set and testing data for this model, just like the analysis above, the test rmse has a reduced value. This shows that the testing data set show decrease in error.
+
+## Discussion and Conclusion
+
+To summarize the process of analysis, first with a given data, the method of analysis was searched. Because I wanted to find the relationship between active covid cases and the foods, the linear model was applied to the data. By leaving the active covid cases as the response variable, the predictor variables were chosen with careful examination. Step function was used to find out the reliable predictor variables. As a result, Alcohol, Milk, and vegetable oils were used as predictor variables. However, during the process of checking the model assumption, it could be found that all the assumptions were violated. Therefore, box-cox transformation was needed in order to solve the issue. After applying a box-cox transformation, leverage point, outlier, and influential points were checked, in order to improve the model with greater accuracy. After modifying the model, training and testing process were applied to the data and the model. As a result, the training RMSE and testing RMSE were calculated. It could be found that the testing RMSE was smaller than the training RMSE, which shows that it has slightly better fitting model for the testing data.The random forest model showed a similar result, with smaller testing RMSE.
+Looking at the values of the coefficient for the model, it shows that alcohol, milk, and vegetable oils have positive linear relationship with active covid cases. It is hard to find the reason behind the positive linear relationship, however, with statistical analysis, it was able to find that places with large active covid cases have large number of alcohol, milk, and vegetable oils consumption.
+

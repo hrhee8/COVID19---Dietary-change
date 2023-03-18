@@ -1,0 +1,162 @@
+---
+title: "Homework 5"
+author: "Hyunjoon Rhee"
+date: "4/11/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+## Problem 1
+#### a)
+```{r}
+library(faraway)
+data(fat)
+```
+
+```{r}
+dim(fat)
+rm = seq(10,252,by=10)
+train = fat[-rm,] 
+test = fat[rm,] 
+```
+
+```{r}
+a <-lm(siri~.-brozek -density, data=train)
+summary(a)
+```
+
+```{r}
+sqrt(mean((a$fit-train$siri)^2))
+pred <- predict(a, test)
+sqrt(mean((pred-test$siri)^2))
+```
+
+Using the test data to predict the root mean square error, which turned out to have a smaller value than just using the training data.
+
+#### b)
+```{r}
+library(MASS)
+b = step(a, direction = c("backward"), criterion = c("BIC"))
+```
+
+
+#### c)
+```{r}
+library(pls)
+pcrm = pcr(siri ~ . -brozek - density, data = train, validation ="CV", ncomp = 15)
+pcrfat = RMSEP(pcrm, estimate ="CV")
+plot(pcrfat)
+```
+
+#### d)
+```{r}
+library(lars)
+traind <- train[ , -c(1:3)]
+x <- as.matrix(traind)
+lm.lasso<- lars(x,train$siri)
+plot(lm.lasso)
+cvlass <- cv.lars(x,train$siri)
+svm = cvlass$index[which.min(cvlass$cv)]
+```
+
+#### e)
+
+By comparing everything, pcr showes the lowest RMSE value.
+
+### Problem 2
+#### a)
+```{r}
+data(chickwts)
+
+a2 = lm(weight ~ feed, data = chickwts)
+anova(a2)
+```
+
+```{r}
+#plot
+plot(chickwts$weight~chickwts$feed)
+```
+Assumptions
+```{r}
+plot(a2$fitted.values,a2$residuals)
+```
+
+```{r}
+qqnorm(chickwts$weight)
+qqline(chickwts$weight)
+```
+
+```{r}
+library(car)
+leveneTest(weight ~ feed,data=chickwts)
+```
+
+```{r}
+a2b = lm(weight ~ feed-1, data = chickwts)
+```
+
+```{r}
+anova(a2b)
+a2b$coefficients
+```
+
+```{r}
+attach(chickwts)
+contrasts(feed)
+```
+
+```{r}
+contrasts(feed) = contr.sum(6)
+a2c=lm(weight~feed)
+summary(a2c)
+a2c$coefficients
+```
+
+```{r}
+259.13+64.45-98.93-40.38+17.78-12.70
+```
+
+There are differences of weights among feed.
+
+#### b)
+
+```{r}
+pairwise.t.test(weight,feed,p.adjust.method = "bonferroni")
+```
+
+```{r}
+tci<-TukeyHSD(aov(weight~feed),data=chickwts)
+plot(tci)
+```
+
+### Problem 3
+#### a)
+```{r}
+data(infmort)
+```
+
+```{r}
+a3<- aov(lm(income ~ region,data=infmort))
+summary(a3)
+
+```
+
+```{r}
+boxplot(income ~ region,data=infmort,horizontal=TRUE)
+```
+
+```{r}
+t<- TukeyHSD(a3)
+t$region[,4]
+plot(t)
+```
+
+```{r}
+aov(formula = lm(income ~ region, data = infmort))
+```
+
+### Problem 3
+#### a)
+

@@ -1,0 +1,116 @@
+---
+title: "HW3"
+author: "Hyunjoon Rhee"
+date: "3/14/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+Problem 1
+```{r}
+library(faraway)
+data(salmonella)
+head(salmonella)
+```
+a)
+```{r}
+a = lm(colonies~log(dose+1),data=salmonella)
+summary(a)
+```
+
+b)
+```{r}
+plot(a,which=1)
+```
+The first plot shows the residual vs fitted.
+
+c)
+```{r}
+c = lm(colonies~factor(log(dose+1)),data=salmonella)
+anova(a,c)
+```
+Because the p value is greater than $\alpha = 0.05$ it fails to reject the null, which means that it has no lack of fit.
+
+Problem 2
+```{r}
+library(faraway)
+library(lmtest)
+data("gammaray")
+prob2 = lm(flux ~ time, data = gammaray)
+bptest(prob2)
+dwtest(prob2)
+plot(prob2,which=1)
+```
+
+a)
+```{r}
+prob21 = lm(log(flux) ~ log(time), data = gammaray)
+prob22 = lm(log(flux) ~ time, data = gammaray)
+prob23 = lm(flux ~ log(time), data = gammaray)
+prob24 = lm(flux ~ time, data = gammaray)
+par(mfrow=c(2,2))
+plot(prob21,which=1)
+plot(prob22,which=1)
+plot(prob23,which=1)
+plot(prob24,which=1)
+```
+```{r}
+prob2a = lm(log(flux) ~ log(time), data = gammaray)
+bptest(prob2a)
+dwtest(prob2a)
+plot(prob2a,which=1)
+```
+Transformation of log for both seems to show better.
+
+b)
+```{r}
+prob2b = lm(log(flux)~log(time), data=gammaray,weights = 1/abs(error))
+```
+
+c)
+```{r}
+summary(prob2b)
+bptest(prob2b)
+shapiro.test(residuals(prob2b))
+```
+Because the Breusch-Pagan test shows that it has p value less than 0.05, it has constant variance. Also because Shapiro test value is less than 0.05, it can be assumed that it is normal.
+
+d)
+I believe this log transformation on both end is the best model because it both meets constant variance and normality assumption.
+
+Problem 3
+a)
+```{r}
+data(divusa)
+head(divusa)
+prob3 = lm(divorce ~ unemployed+femlab+marriage+birth+military, data = divusa)
+plot(prob3,which=1)
+
+```
+It is hard to say that it is autocorrelated just by looking at the graph, but I believe it is autocorrelated because it looks like it is connected from one after another.
+
+b)
+```{r}
+dwtest(prob3)
+```
+Null hypothesis is that errors are not autocorrelated. However, since the pvalue is smaller than 0.05, we reject the null hypothesis, meaning that errors are autocorrelated.
+
+c)
+```{r}
+library(nlme)
+prob3c = gls(divorce ~ unemployed+femlab+marriage+birth+military, correlation= corAR1(form=~year),method='ML',data=divusa)
+summary(prob3c)
+```
+d)
+```{r}
+intervals(prob3c)
+```
+Because the confidence interval does not contain 0, we reject the null hypothesis. Therefore correlation coefficient is significant.
+
+e)
+GLS model does not change the variables that are shown significant in the lm model.
+
+f)
+Autocorrelation gives a potential reason why there might be a error in correlation, due to its time sequential properties.
