@@ -13,5 +13,7 @@ https://github.com/hrhee8/COVID19---Dietary-change/blob/main/Final/Final.pdf
 
 Figure 1: Energy intake products(higher bar means it's the more dominant means of energy intake)
 ![alt text](https://github.com/hrhee8/COVID19---Dietary-change/blob/main/Screenshot%202023-08-04%20at%2010.41.09%20PM.png)
+
+
 ![alt text](https://github.com/hrhee8/COVID19---Dietary-change/blob/main/Screenshot%202023-08-04%20at%2010.41.49%20PM.png)
 ![alt text](https://github.com/hrhee8/COVID19---Dietary-change/blob/main/Screenshot%202023-08-04%20at%2010.41.40%20PM.png)
